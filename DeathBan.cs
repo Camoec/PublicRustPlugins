@@ -89,7 +89,7 @@ namespace Oxide.Plugins
             }, this);
         }
 
-        private string Lang(string key) => lang.GetMessage(key, this, null);
+        private string Lang(string key, string userid) => lang.GetMessage(key, this, userid);
 
 
         object OnPlayerDeath(BasePlayer player, HitInfo info)
@@ -107,13 +107,13 @@ namespace Oxide.Plugins
                     else
                         _data.activeBans[player.UserIDString] = DateTime.Now + TimeSpan.FromSeconds(_config.BanTime);
 
-                    player.Kick(string.Format(Lang("TempBan"), _config.BanTime));
+                    player.Kick(string.Format(Lang("TempBan", player.UserIDString), _config.BanTime));
                 }
                 else
                 {
                     Puts($"Permanent ban for player '{player}'");
                     ServerUsers.Set(player.userID, ServerUsers.UserGroup.Banned, string.Empty, string.Empty);
-                    player.Kick(Lang("PermBan"));
+                    player.Kick(Lang("PermBan", player.UserIDString));
                 }
 
                 SaveData();
@@ -136,7 +136,7 @@ namespace Oxide.Plugins
                 else
                 {
                     //Puts($"'{name}' tried to connect but still has ban until {_data.activeBans[id]}");
-                    return string.Format(Lang("Reject"), (int)(_data.activeBans[id] - DateTime.Now).TotalSeconds);
+                    return string.Format(Lang("Reject", id), (int)(_data.activeBans[id] - DateTime.Now).TotalSeconds);
                 }
             }
             return true;
