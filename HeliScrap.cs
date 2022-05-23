@@ -5,7 +5,7 @@ using System;
 
 namespace Oxide.Plugins
 {
-    [Info("HeliScrap", "Camoec", 1.0)]
+    [Info("Heli Scrap", "Camoec", 1.1)]
     [Description("Call heli with scrap")]
 
     public class HeliScrap : RustPlugin
@@ -73,7 +73,7 @@ namespace Oxide.Plugins
             }, this);
         }
 
-        private string Lang(string key) => lang.GetMessage(key, this, null);
+        private string Lang(string key, string userid) => lang.GetMessage(key, this, userid);
 
         #endregion
 
@@ -98,21 +98,21 @@ namespace Oxide.Plugins
 
 
 
-                        PrintToChat(player, $"{_config.ChatPrefix} {Lang(key: "Success")}");
+                        PrintToChat(player, $"{_config.ChatPrefix} {Lang("Success", player.UserIDString)}");
                     }
                     else
                     {
-                        PrintToChat(player, $"{_config.ChatPrefix} {Lang(key: "MaxSpawnedHelis")}");
+                        PrintToChat(player, $"{_config.ChatPrefix} {Lang("MaxSpawnedHelis", player.UserIDString)}");
                     }
                 }
                 else
                 {
-                    PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang(key: "NoRequiredScrap"), _config.ScrapAmount)}");
+                    PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang("NoRequiredScrap", player.UserIDString), _config.ScrapAmount)}");
                 }
             }
             else
             {
-                PrintToChat(player, $"{_config.ChatPrefix} {Lang("NoPermission")}");
+                PrintToChat(player, $"{_config.ChatPrefix} {Lang("NoPermission", player.UserIDString)}");
             }
         }
 
@@ -131,9 +131,9 @@ namespace Oxide.Plugins
             }
         }
 
-        void OnEntitySpawned(BaseNetworkable entity)
+        void OnEntitySpawned(BaseHelicopter entity)
         {
-            if (entity as BaseHelicopter != null)
+            if (entity != null)
                 activeHelis.Add(entity as BaseHelicopter);
         }
 
