@@ -1,0 +1,2 @@
+# PublicRustPlugins
+Public rust plugins
