@@ -5,16 +5,18 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Repair Blocker", "Camoec", 1.0)]
+    [Info("Repair Blocker", "Camoec", 1.1)]
     [Description("Prevents certain objects from being repaired")]
 
     public class RepairBlocker : RustPlugin
-    {
+    {  
         private const string BypassPerm = "repairblocker.bypass";
         private class PluginConfig
         {
+            [JsonProperty(PropertyName = "ChatPrefix")]
+            public string ChatPrefix = "<color=#eb4213>Repair Blocker</color>:";
             [JsonProperty(PropertyName = "BlackList")]
-            public List<int> BlackList = new List<int>();
+            public List<string> BlackList = new List<string>();
         }
 
         private PluginConfig _config;
@@ -24,8 +26,9 @@ namespace Oxide.Plugins
         {
             //base.LoadDefaultConfig();
             _config = new PluginConfig();
-            _config.BlackList.Add(-1812555177); // rifle.lr300
-            _config.BlackList.Add(1545779598); // rifle.ak
+            _config.BlackList.Add("rifle.lr300"); // rifle.lr300
+            _config.BlackList.Add("rifle.ak"); // rifle.ak
+            _config.BlackList.Add("repairbench_deployed"); // repair bench
             SaveConfig();
         }
         protected override void LoadConfig()
@@ -48,14 +51,36 @@ namespace Oxide.Plugins
             }
         }
 
+        protected override void LoadDefaultMessages()
+        {
+            lang.RegisterMessages(new Dictionary<string, string>
+            {
+                ["NoRepair"] = "You are not allowed to repair that"
+            }, this);
+        }
+
+        private string Lang(string key, string userid) => lang.GetMessage(key, this, userid);
+
         private void Init()
         {
             permission.RegisterPermission(BypassPerm, this);
         }
         object OnItemRepair(BasePlayer player, Item item)
         {
-            if (_config.BlackList.Contains(item.info.itemid) && !permission.UserHasPermission(player.UserIDString, BypassPerm))
+            if (_config.BlackList.Contains(item.info.shortname) && !permission.UserHasPermission(player.UserIDString, BypassPerm))
+            {
+                PrintToChat(player, $"{_config.ChatPrefix} {Lang("NoRepair", player.UserIDString)}");
                 return false;
+            }
+            return null;
+        }
+        object OnHammerHit(BasePlayer player, HitInfo info)
+        {
+            if (_config.BlackList.Contains(info.HitEntity.ShortPrefabName) && !permission.UserHasPermission(player.UserIDString, BypassPerm))
+            {
+                PrintToChat(player, $"{_config.ChatPrefix} {Lang("NoRepair", player.UserIDString)}");
+                return false;
+            }
             return null;
         }
     }
