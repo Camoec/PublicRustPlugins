@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("RepairBlocker", "Camoec", 1.0)]
+    [Info("Repair Blocker", "Camoec", 1.0)]
     [Description("Prevents certain objects from being repaired")]
 
     public class RepairBlocker : RustPlugin

@@ -5,7 +5,7 @@ using Oxide.Core;
 
 namespace Oxide.Plugins
 {
-    [Info("DeathBan", "Camoec", 1.0)]
+    [Info("Death Ban", "Camoec", 1.0)]
     [Description("Temporal and perma bans on death")]
 
     public class DeathBan : RustPlugin
