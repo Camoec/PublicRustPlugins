@@ -1,11 +1,6 @@
-﻿using UnityEngine;
-using System;
-using Oxide.Core;
+﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using Oxide.Game.Rust.Cui;
-using Oxide.Core.Libraries.Covalence;
-using Oxide.Core.Plugins;
 
 
 namespace Oxide.Plugins
