@@ -5,7 +5,7 @@ using System;
 
 namespace Oxide.Plugins
 {
-    [Info("Heli Scrap", "Camoec", 1.1)]
+    [Info("Heli Scrap", "Camoec", 1.2)]
     [Description("Call heli with scrap")]
 
     public class HeliScrap : RustPlugin
@@ -134,7 +134,7 @@ namespace Oxide.Plugins
         void OnEntitySpawned(BaseHelicopter entity)
         {
             if (entity != null)
-                activeHelis.Add(entity as BaseHelicopter);
+                activeHelis.Add(entity);
         }
 
         
