@@ -33,7 +33,6 @@ namespace Oxide.Plugins
         protected override void SaveConfig() => Config.WriteObject(_config, true);
         protected override void LoadDefaultConfig()
         {
-            //base.LoadDefaultConfig();
             _config = new PluginConfig();
             SaveConfig();
         }
