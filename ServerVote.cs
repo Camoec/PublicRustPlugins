@@ -96,7 +96,7 @@ namespace Oxide.Plugins
             List<string> availableCommands = new List<string>();
             if (activeVote != null)
             {
-                if(!activeVote.votePlayers.Contains(player))
+                if (!activeVote.votePlayers.Contains(player))
                 {
                     availableCommands.Add(Lang("yes", player.UserIDString));
                     availableCommands.Add(Lang("no", player.UserIDString));
@@ -105,7 +105,8 @@ namespace Oxide.Plugins
                 if (create)
                     availableCommands.Add(Lang("close", player.UserIDString));
 
-            }else if(create)
+            }
+            else if (create)
             {
                 if (activeVote == null)
                     availableCommands.Add(Lang("create", player.UserIDString));
@@ -224,6 +225,15 @@ namespace Oxide.Plugins
                 PrintToChat(player, String.Format(Lang("Syntax", player.UserIDString), tmp));
             else
                 PrintToChat(player, Lang("NoActiveVote", player.UserIDString));
+        }
+
+        void Test()
+        {
+            
+            foreach (BasePlayer player in BasePlayer.activePlayerList)
+            {
+                PrintToChat(player, $"Hello {player.displayName}");
+            }
         }
 
         protected override void LoadDefaultMessages()
