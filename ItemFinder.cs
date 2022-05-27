@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
-
+﻿using Oxide.Core.Libraries.Covalence;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Item Finder", "Camoec", 1.0)]
+    [Info("Item Finder", "Camoec", 1.1)]
     [Description("Get count of specific item in the server")]
 
     public class ItemFinder : RustPlugin
@@ -13,6 +15,7 @@ namespace Oxide.Plugins
         private void Init()
         {
             permission.RegisterPermission(Perm, this);
+            
         }
 
         private class ItemsInfo
@@ -33,28 +36,23 @@ namespace Oxide.Plugins
         {
             if(!permission.UserHasPermission(player.UserIDString, Perm))
             {
-                PrintToChat(player, Lang("NoPermission", player.UserIDString));
+                player.IPlayer.Reply(Lang("NoPermission", player.UserIDString));
                 return;
             }
-            if(args.Length == 0)
+            if(args.Length == 0 || args[0] == null)
             {
-                PrintToChat(player, Lang("InvalidSyntax", player.UserIDString));
+                player.IPlayer.Reply(Lang("InvalidSyntax", player.UserIDString));
                 return;
             }
-            timer.In(0.01f, () =>
+            var info = GetInfo(args[0]);
+           
+            if (info == null)
             {
-                var info = GetInfo(args[0]);
-                if (info == null)
-                {
-                    PrintToChat(player, string.Format(Lang("NotFound", player.UserIDString), args[0]));
-                    return;
-                }
-                PrintToChat(player, Lang("Founded", player.UserIDString).Replace("{0}", info.itemId.ToString())
-                                                                           .Replace("{1}", info.dropped.ToString())
-                                                                           .Replace("{2}", info.inCointaners.ToString())
-                                                                           .Replace("{3}", info.inPlayers.ToString())
-                                                                           .Replace("{4}", info.totalCount.ToString()));
-            });
+                player.IPlayer.Reply(string.Format(Lang("NotFound", player.UserIDString), info.shortname));
+                return;
+            }
+
+            player.IPlayer.Reply(string.Format(Lang("Found", player.UserIDString), info.itemId, info.dropped, info.inCointaners, info.inPlayers, info.totalCount ));
         }
 
         private int? GetItemId(string shortname) => ItemManager.FindItemDefinition(shortname)?.itemid;
@@ -81,7 +79,7 @@ namespace Oxide.Plugins
             // Get in players inventory
             foreach(BasePlayer player in BasePlayer.allPlayerList)
             {
-                if (player.inventory == null)
+                if (player == null)
                     continue;
 
                 player.inventory.containerMain.itemList.ForEach((item) =>
@@ -112,6 +110,7 @@ namespace Oxide.Plugins
                     {
                         info.dropped += item.amount;
                     }
+                    continue;
                 }
 
                 var container = entity as StorageContainer;
@@ -134,7 +133,7 @@ namespace Oxide.Plugins
             {
                 ["InvalidSyntax"] = "Use <color=#eb4213>/itemfinder</color> [item shortname]",
                 ["NotFound"] = "Item '{0}' not found",
-                ["Founded"] = "<color=#eb4213>ItemInfo:</color>\r\nItemId:{0}\r\nDropped:{1}\r\nInContainers:{2}\r\ninPlayers:{3}\r\nTotal:{4}",
+                ["Found"] = "<color=#eb4213>ItemInfo:</color>\r\nItemId:{0}\r\nDropped:{1}\r\nInContainers:{2}\r\ninPlayers:{3}\r\nTotal:{4}",
                 ["NoPermission"] = "You not have permission to use this command"
             }, this);
         }

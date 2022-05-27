@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Custom Cards", "Camoec", 1.0)]
+    [Info("Custom Cards", "Camoec", 1.1)]
     [Description("Allows to change the max uses of the keycards")]
 
     public class CustomCards : RustPlugin
@@ -50,7 +50,6 @@ namespace Oxide.Plugins
         {
             if (cardReader == null || card == null || player == null)
             {
-                Puts("Null");
                 return null;
             }
 
