@@ -5,7 +5,7 @@ using System;
 
 namespace Oxide.Plugins
 {
-    [Info("Heli Scrap", "Camoec", 1.2)]
+    [Info("Heli Scrap", "Camoec", 1.4)]
     [Description("Call heli with scrap")]
 
     public class HeliScrap : RustPlugin
@@ -27,11 +27,19 @@ namespace Oxide.Plugins
 
             [JsonProperty(PropertyName = "MaxSpawnedHelis")]
             public int MaxSpawnedHelis = 1;
+
+            [JsonProperty(PropertyName = "Player Cooldown (in seconds)")]
+            public int Cooldown = 60;
+
+            [JsonProperty(PropertyName = "Global Cooldown (in seconds)")]
+            public int GCooldown = 30;
         }
 
         private const string UsePerm = "heliscrap.use";
         private const string HELI_PREFAB = "assets/prefabs/npc/patrol helicopter/patrolhelicopter.prefab";
         private HashSet<BaseHelicopter> activeHelis = new HashSet<BaseHelicopter>();
+        private Dictionary<BasePlayer, DateTime> playerCooldown = new Dictionary<BasePlayer, DateTime>();
+        private DateTime lastCall = new DateTime();
 
 
         #region Config Setup
@@ -69,7 +77,8 @@ namespace Oxide.Plugins
                 ["Success"] = "Heli called successfuly",
                 ["MaxSpawnedHelis"] = "Max heli in bound reached",
                 ["NoRequiredScrap"] = "You don't have {0} of scrap in your inventory",
-                ["NoPermission"] = "You don't have required permission to use this command"
+                ["NoPermission"] = "You don't have required permission to use this command",
+                ["Cooldown"] = "You need to wait {0} seconds to use this command"
             }, this);
         }
 
@@ -85,35 +94,64 @@ namespace Oxide.Plugins
 
         private void CallCommand(BasePlayer player)
         {
-            if(permission.UserHasPermission(player.UserIDString, UsePerm) || !_config.UsePermission)
+            if (!permission.UserHasPermission(player.UserIDString, UsePerm) && _config.UsePermission)
             {
-                if(CanRemoveItem(player, -932201673, _config.ScrapAmount)) 
+                PrintToChat(player, $"{_config.ChatPrefix} {Lang("NoPermission", player.UserIDString)}");
+                return;
+            }
+
+
+            if (DateTime.Now - lastCall < TimeSpan.FromSeconds(_config.GCooldown))
+            {
+                PrintToChat(player, string.Format(Lang("Cooldown", player.UserIDString), _config.GCooldown - (int)(DateTime.Now - lastCall).TotalSeconds));
+                return;
+            }
+
+
+
+            if (playerCooldown.ContainsKey(player) && DateTime.Now - playerCooldown[player] < TimeSpan.FromSeconds(_config.Cooldown))
+            {
+                PrintToChat(player, string.Format(Lang("Cooldown", player.UserIDString), _config.Cooldown - (int)(DateTime.Now - playerCooldown[player]).TotalSeconds));
+                return;
+            }
+
+
+
+
+
+            if (CanRemoveItem(player, -932201673, _config.ScrapAmount))
+            {
+                CheckHelis();
+                if (activeHelis.Count < _config.MaxSpawnedHelis)
                 {
-                    CheckHelis();
-                    if(activeHelis.Count < _config.MaxSpawnedHelis)
+                    RemoveItemsFromInventory(player, -932201673, _config.ScrapAmount);
+                    // call heli
+                    callHeli(player.transform.position, false);
+
+
+                    if (playerCooldown.ContainsKey(player))
                     {
-                        RemoveItemsFromInventory(player, -932201673, _config.ScrapAmount);
-                        // call heli
-                        callHeli();
-
-
-
-                        PrintToChat(player, $"{_config.ChatPrefix} {Lang("Success", player.UserIDString)}");
+                        playerCooldown[player] = DateTime.Now;
                     }
                     else
                     {
-                        PrintToChat(player, $"{_config.ChatPrefix} {Lang("MaxSpawnedHelis", player.UserIDString)}");
+                        playerCooldown.Add(player, DateTime.Now);
                     }
+                    lastCall = DateTime.Now;
+
+
+                    PrintToChat(player, $"{_config.ChatPrefix} {Lang("Success", player.UserIDString)}");
                 }
                 else
                 {
-                    PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang("NoRequiredScrap", player.UserIDString), _config.ScrapAmount)}");
+                    PrintToChat(player, $"{_config.ChatPrefix} {Lang("MaxSpawnedHelis", player.UserIDString)}");
                 }
             }
             else
             {
-                PrintToChat(player, $"{_config.ChatPrefix} {Lang("NoPermission", player.UserIDString)}");
+                PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang("NoRequiredScrap", player.UserIDString), _config.ScrapAmount)}");
             }
+
         }
 
         

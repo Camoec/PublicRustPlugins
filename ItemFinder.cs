@@ -2,20 +2,56 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Oxide.Core;
+using System;
+using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Item Finder", "Camoec", 1.1)]
+    [Info("Item Finder", "Camoec", 1.3)]
     [Description("Get count of specific item in the server")]
 
-    public class ItemFinder : RustPlugin
+    public class ItemFinder : CovalencePlugin
     {
         private const string Perm = "itemfinder.use";
+        private DateTime lastCommand = new DateTime();
+
+        private PluginConfig _config;
+        private class PluginConfig
+        {
+            [JsonProperty(PropertyName = "Cooldown (is seconds)")]
+            public int Cooldown = 5;
+        }
+
+        protected override void SaveConfig() => Config.WriteObject(_config, true);
+        protected override void LoadDefaultConfig()
+        {
+            _config = new PluginConfig();
+            SaveConfig();
+        }
+        protected override void LoadConfig()
+        {
+            base.LoadConfig();
+            try
+            {
+                _config = Config.ReadObject<PluginConfig>();
+
+                if (_config == null)
+                    throw new Exception();
+
+                SaveConfig(); // override posible obsolet / outdated config
+            }
+            catch (Exception)
+            {
+                PrintError("Loaded default config.");
+
+                LoadDefaultConfig();
+            }
+        }
 
         private void Init()
         {
             permission.RegisterPermission(Perm, this);
-            
         }
 
         private class ItemsInfo
@@ -31,28 +67,38 @@ namespace Oxide.Plugins
             public int totalCount => droppedCount + inPlayers + inCointaners;
         }
 
-        [ChatCommand("itemfinder")]
-        private void GetActiveEnts(BasePlayer player, string command, string[] args)
+        [Command("itemfinder")]
+        private void GetActiveEnts(IPlayer player, string command, string[] args)
         {
-            if(!permission.UserHasPermission(player.UserIDString, Perm))
+            if (!player.HasPermission(Perm))
             {
-                player.IPlayer.Reply(Lang("NoPermission", player.UserIDString));
-                return;
-            }
-            if(args.Length == 0 || args[0] == null)
-            {
-                player.IPlayer.Reply(Lang("InvalidSyntax", player.UserIDString));
-                return;
-            }
-            var info = GetInfo(args[0]);
-           
-            if (info == null)
-            {
-                player.IPlayer.Reply(string.Format(Lang("NotFound", player.UserIDString), info.shortname));
+                player.Reply(Lang("NoPermission", player.Id));
                 return;
             }
 
-            player.IPlayer.Reply(string.Format(Lang("Found", player.UserIDString), info.itemId, info.dropped, info.inCointaners, info.inPlayers, info.totalCount ));
+            if (args.Length == 0)
+            {
+                player.Reply(Lang("InvalidSyntax", player.Id));
+                return;
+            }
+
+            if(DateTime.Now - lastCommand < TimeSpan.FromSeconds(_config.Cooldown))
+            {
+                player.Reply(string.Format(Lang("Cooldown", player.Id), _config.Cooldown - (int)(DateTime.Now - lastCommand).TotalSeconds));
+                return;
+            }
+
+            lastCommand = DateTime.Now;
+
+            var info = GetInfo(args[0]);
+
+            if (info == null)
+            {
+                player.Reply(string.Format(Lang("NotFound", player.Id), info.shortname));
+                return;
+            }
+
+            player.Reply(string.Format(Lang("Found", player.Id), info.itemId, info.dropped, info.inCointaners, info.inPlayers, info.totalCount));
         }
 
         private int? GetItemId(string shortname) => ItemManager.FindItemDefinition(shortname)?.itemid;
@@ -134,7 +180,8 @@ namespace Oxide.Plugins
                 ["InvalidSyntax"] = "Use <color=#eb4213>/itemfinder</color> [item shortname]",
                 ["NotFound"] = "Item '{0}' not found",
                 ["Found"] = "<color=#eb4213>ItemInfo:</color>\r\nItemId:{0}\r\nDropped:{1}\r\nInContainers:{2}\r\ninPlayers:{3}\r\nTotal:{4}",
-                ["NoPermission"] = "You not have permission to use this command"
+                ["NoPermission"] = "You not have permission to use this command",
+                ["Cooldown"] = "You need to wait {0} seconds to use this command"
             }, this);
         }
 

@@ -4,8 +4,8 @@ using Oxide.Game.Rust.Cui;
 
 namespace Oxide.Plugins
 {
-    [Info("Perms UI", "Camoec", 1.1)]
-    [Description("Useful for managing permissions.")]
+    [Info("Perms UI", "Camoec", 1.2)]
+    [Description("GUI for managing plugin permissions in-game")]
 
     public class PermsUI : RustPlugin
     {
@@ -22,7 +22,7 @@ namespace Oxide.Plugins
             var container = new CuiElementContainer();
             List<string> perms = new List<string>();
             foreach (var perm in permission.GetPermissions())
-                if (!perm.Contains("oxide"))
+                if (!perm.StartsWith("oxide"))
                     perms.Add(perm);
 
             int pageLen = 11;
@@ -87,7 +87,7 @@ namespace Oxide.Plugins
                 },
                 Text =
                 {
-                    Text = $"[{page+1}/{(int)(perms.Count / 10)+1}] Permissions for {(user ? $"{target.displayName} [{target.UserIDString}]" : userID)}",
+                    Text = string.Format(Lang("Info", player.UserIDString), page+1, (int)(perms.Count / 10)+1, (user ? $"{target.displayName} [{target.UserIDString}]" : userID)),
                     Align = TextAnchor.MiddleLeft,
                     Font = "RobotoCondensed-Bold.ttf",
                     FontSize = 14,
@@ -145,7 +145,7 @@ namespace Oxide.Plugins
                 Button =
                 {
                     Color =  "0.6 0.01 0.16 1",
-                    Command = $"PERMS page {player.UserIDString} {userID} {user} {(page > 0 ? page-1 : 0)}"
+                    Command = $"perms page {player.UserIDString} {userID} {user} {(page > 0 ? page-1 : 0)}"
                 }
             }, Layer + ".Header");
             
@@ -203,7 +203,7 @@ namespace Oxide.Plugins
                     Button =
                     {
                         Color =  cmd == "Revoke" ? "0.6 0.01 0.16 1" : "0.1 0.6 0.1 1",
-                        Command = $"PERMS {(user ? "USER" : "GROUP")} {cmd} {perm} {userID} {player.userID} {page}"
+                        Command = $"perms {(user ? "USER" : "GROUP")} {cmd} {perm} {userID} {player.userID} {page}"
                     }
                 }, Layer + $".Perm.{_y}");
 
@@ -214,10 +214,10 @@ namespace Oxide.Plugins
             CuiHelper.AddUi(player, container);
         }
 
-        [ConsoleCommand("PERMS")]
+        [ConsoleCommand("perms")]
         private void GivePerm(ConsoleSystem.Arg arg)
         {
-            if (arg == null || arg.Args == null)
+            if (arg == null || arg.Args.Length == 0)
                 return;
             var args = arg.Args;
 
@@ -311,7 +311,8 @@ namespace Oxide.Plugins
                 ["NoPermission"] = "You don't have permission to use this",
                 ["Syntax"] = "Use /perms [user|group] [id|name]",
                 ["GroupNF"] = "Group not found",
-                ["UserNF"] = "Player not found"
+                ["UserNF"] = "Player not found",
+                ["Info"] = "[{0}/{1}] Permissions for {2}"
             }, this);
         }
 
