@@ -2,15 +2,19 @@
 using Newtonsoft.Json;
 using UnityEngine;
 using System;
+using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
-    [Info("Heli Scrap", "Camoec", 1.4)]
+    [Info("Heli Scrap", "Camoec", 1.5)]
     [Description("Call heli with scrap")]
 
     public class HeliScrap : RustPlugin
     {
-        private PluginConfig _config; 
+        private PluginConfig _config;
+        [PluginReference]
+        private readonly Plugin Economics;
+
         private class PluginConfig
         {
             [JsonProperty(PropertyName = "ChatPrefix")]
@@ -19,8 +23,11 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Command")]
             public string Command = "CallHeli";
 
-            [JsonProperty(PropertyName = "Scrap Amount")]
+            [JsonProperty(PropertyName = "Scrap Amount (If Economics is enabled, use RP)")]
             public int ScrapAmount = 100;
+
+            [JsonProperty(PropertyName = "UseEconomics")]
+            public bool UseEconomics = false;
 
             [JsonProperty(PropertyName = "UsePermission")]
             public bool UsePermission = true;
@@ -41,6 +48,22 @@ namespace Oxide.Plugins
         private Dictionary<BasePlayer, DateTime> playerCooldown = new Dictionary<BasePlayer, DateTime>();
         private DateTime lastCall = new DateTime();
 
+
+        private bool RemoveCost(BasePlayer player)
+        {
+            if(_config.UseEconomics)
+            {
+                var ret = (bool)Economics.Call("Withdraw", player.userID, (double)_config.ScrapAmount);
+                
+                return ret;
+            }
+            else if(CanRemoveItem(player, -932201673, _config.ScrapAmount))
+            {
+                RemoveItemsFromInventory(player, -932201673, _config.ScrapAmount);
+                return true;
+            }
+            return false;
+        }
 
         #region Config Setup
 
@@ -68,6 +91,22 @@ namespace Oxide.Plugins
 
                 LoadDefaultConfig();
             }
+
+            
+        }
+
+        void Loaded()
+        {
+            if (_config.UseEconomics == true && Economics == null)
+            {
+                Puts("Economics not found, disabling feature");
+                _config.UseEconomics = false;
+                return;
+            }
+            if(Economics != null)
+            {
+                Puts("Economics Found!");
+            }
         }
 
         protected override void LoadDefaultMessages()
@@ -78,7 +117,8 @@ namespace Oxide.Plugins
                 ["MaxSpawnedHelis"] = "Max heli in bound reached",
                 ["NoRequiredScrap"] = "You don't have {0} of scrap in your inventory",
                 ["NoPermission"] = "You don't have required permission to use this command",
-                ["Cooldown"] = "You need to wait {0} seconds to use this command"
+                ["Cooldown"] = "You need to wait {0} seconds to use this command",
+                ["NoRequiredRP"] = "You don't have {0} of RP"
             }, this);
         }
 
@@ -116,16 +156,11 @@ namespace Oxide.Plugins
             }
 
 
-
-
-
-            if (CanRemoveItem(player, -932201673, _config.ScrapAmount))
+            CheckHelis();
+            if(activeHelis.Count < _config.MaxSpawnedHelis)
             {
-                CheckHelis();
-                if (activeHelis.Count < _config.MaxSpawnedHelis)
+                if(RemoveCost(player))
                 {
-                    RemoveItemsFromInventory(player, -932201673, _config.ScrapAmount);
-                    // call heli
                     callHeli(player.transform.position, false);
 
 
@@ -144,14 +179,20 @@ namespace Oxide.Plugins
                 }
                 else
                 {
-                    PrintToChat(player, $"{_config.ChatPrefix} {Lang("MaxSpawnedHelis", player.UserIDString)}");
+                    if (_config.UseEconomics)
+                    {
+                        PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang("NoRequiredRP", player.UserIDString), _config.ScrapAmount)}");
+                    }
+                    else
+                    {
+                        PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang("NoRequiredScrap", player.UserIDString), _config.ScrapAmount)}");
+                    }
                 }
             }
             else
             {
-                PrintToChat(player, $"{_config.ChatPrefix} {string.Format(Lang("NoRequiredScrap", player.UserIDString), _config.ScrapAmount)}");
+                PrintToChat(player, $"{_config.ChatPrefix} {Lang("MaxSpawnedHelis", player.UserIDString)}");
             }
-
         }
 
         
