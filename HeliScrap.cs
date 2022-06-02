@@ -99,7 +99,7 @@ namespace Oxide.Plugins
         {
             if (_config.UseEconomics == true && Economics == null)
             {
-                Puts("Economics not found, disabling feature");
+                Puts("Economics not found, disabling the feature");
                 _config.UseEconomics = false;
                 return;
             }
